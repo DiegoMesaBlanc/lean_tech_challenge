@@ -67,18 +67,38 @@ class InvoiceProcessor {
 	}
 
 	public async processQueue(): Promise<void> {
+		const promises: Promise<void>[] = [];
+
 		while (!this.queue.isEmpty()) {
 			const invoice = this.queue.dequeue();
 
 			if (invoice) {
-				try {
-					const signedInvoiceId = await this.signingService.signAndStamp(invoice);
-					this.storageService.store(signedInvoiceId, invoice);
-					console.log(`Factura ${invoice.id} firmada y almacenada como ${signedInvoiceId}`);
-				} catch (error) {
-					console.error(`Error al procesar la factura ${invoice.id}:`, error);
-					this.queue.enqueue(invoice); // Reintentar más tarde
-				}
+				promises.push(this.processInvoice(invoice));
+			}
+		}
+
+		await Promise.all(promises);
+	}
+
+	private async processInvoice(invoice: Invoice): Promise<void> {
+		try {
+			const signedInvoiceId = await this.signingService.signAndStamp(invoice);
+
+			this.storageService.store(signedInvoiceId, invoice);
+
+			console.log(`Factura ${invoice.id} firmada y almacenada como ${signedInvoiceId}`);
+		} catch (error) {
+			console.error(`Error al procesar la factura ${invoice.id}:`, error);
+
+			if (invoice.retries === undefined) {
+				invoice.retries = 0;
+			}
+
+			if (invoice.retries < 3) {
+				invoice.retries++;
+				this.queue.enqueue(invoice); // Reintentar más tarde
+			} else {
+				console.error(`Factura ${invoice.id} falló después de múltiples intentos.`);
 			}
 		}
 	}
@@ -134,3 +154,14 @@ async function main() {
 }
 
 main().catch(console.error);
+
+
+/** Explicación:
+ * 1. Modelo de Datos: Define la estructura de una factura.
+ * 2. Servicio de Firma y Estampado: Simula un servicio externo que firma y estampa la factura.
+ * 3. Servicio de Almacenamiento: Simula el almacenamiento seguro de las facturas electrónicas.
+ * 4. Cola de Mensajes: Gestiona una cola de mensajes para procesar las facturas de manera asíncrona.
+ * 5. Procesador de Facturas: Procesa las facturas en la cola, firmándolas y almacenándolas.
+ * 6. Punto de Venta: Genera una factura física y la envía a la cola para su procesamiento asíncrono.
+ * 7. Simulación del Sistema: Junta todos los componentes y simula la generación y procesamiento de facturas. 
+**/
