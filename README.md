@@ -58,3 +58,9 @@ Deberá desarrollar una aplicación TypeScript por consola que cumpla con las co
 - Bonus: 
     1. Funcionalidades que mejoren la experiencia gráfica y facilidad para el usuario.
     2. Patrones o principios de programación utilizados y su beneficio.
+
+
+> [!NOTE]
+> COMANDOS:
+
+- Para correr los dos proyectos, podemos ejecutar el comando **"npm run dev"** dirigiendonos a cada una de sus rutas, ya que por decisión propia cree los dos puntos del reto en un solo repositorio.
